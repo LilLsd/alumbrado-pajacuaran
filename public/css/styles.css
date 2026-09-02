@@ -1,0 +1,646 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* Paleta Oficial Pajacuarán 2024-2027 */
+  --paja-guinda: #68181A;
+  --paja-guinda-dark: #4e1113;
+  --paja-verde: #76A738;
+  --paja-verde-dark: #527823;
+  --paja-verde-claro: #8ec347;
+  --paja-oro: #E8B024;
+  --paja-oro-dark: #c59318;
+  
+  /* Tonos neutros */
+  --bg-app: #F5F6F8;
+  --bg-card: #FFFFFF;
+  --border-color: #E2E8F0;
+  --text-dark: #1E293B;
+  --text-muted: #64748B;
+  
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 10px rgba(104, 24, 26, 0.12);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Montserrat', sans-serif;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--bg-app);
+  color: var(--text-dark);
+}
+
+/* ==========================================
+   HEADER INSTITUCIONAL
+   ========================================== */
+header {
+  background: linear-gradient(135deg, var(--paja-guinda) 0%, var(--paja-guinda-dark) 100%);
+  color: #FFFFFF;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  border-bottom: 3.5px solid var(--paja-verde);
+}
+
+.header-branding {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-ayuntamiento {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
+  background: #FFFFFF;
+  padding: 2px 8px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+
+.header-titulos h1 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #FFFFFF;
+  line-height: 1.2;
+}
+
+.header-titulos span {
+  font-size: 0.72rem;
+  color: #F8FAFC;
+  opacity: 0.9;
+  letter-spacing: 0.3px;
+  font-weight: 500;
+}
+
+.btn-toggle {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #FFFFFF;
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-toggle:hover {
+  background: var(--paja-verde);
+  border-color: var(--paja-verde);
+}
+
+#status-card {
+  background: #FFFFFF;
+  padding: 5px 24px;
+  font-size: 0.78rem;
+  border-bottom: 1px solid var(--border-color);
+  text-align: right;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.content-container {
+  display: flex;
+  flex: 1;
+  position: relative;
+  height: calc(100vh - 90px);
+}
+
+/* ==========================================
+   SIDEBAR / PANEL DE CONTROL
+   ========================================== */
+.sidebar {
+  position: absolute;
+  top: 0;
+  left: -350px;
+  width: 330px;
+  height: 100%;
+  background: var(--bg-card);
+  z-index: 2000;
+  box-shadow: var(--shadow-lg);
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  border-right: 2px solid var(--border-color);
+}
+
+.sidebar.active {
+  left: 0;
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--paja-guinda);
+  padding-bottom: 10px;
+}
+
+.sidebar-header h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--paja-guinda);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-close {
+  background: #F1F5F9;
+  border: none;
+  font-size: 1rem;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.btn-close:hover {
+  background: var(--paja-guinda);
+  color: white;
+}
+
+/* Tarjetas KPI */
+.stats-box {
+  display: flex;
+  gap: 10px;
+}
+
+.stat-item {
+  flex: 1;
+  padding: 12px 8px;
+  border-radius: 8px;
+  text-align: center;
+  color: white;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease;
+}
+
+.stat-item span {
+  display: block;
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.stat-item small {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.stat-item.operativa {
+  background: linear-gradient(135deg, var(--paja-verde) 0%, var(--paja-verde-dark) 100%);
+}
+
+.stat-item.fallando {
+  background: linear-gradient(135deg, var(--paja-guinda) 0%, var(--paja-guinda-dark) 100%);
+}
+
+.filter-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+
+.filter-box label {
+  font-weight: 600;
+  color: var(--paja-guinda);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.select-input {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-color);
+  outline: none;
+  font-size: 0.85rem;
+  background-color: #FFFFFF;
+  color: var(--text-dark);
+  font-weight: 500;
+  transition: border-color 0.2s;
+}
+
+.select-input:focus {
+  border-color: var(--paja-verde);
+}
+
+/* Módulo Búsqueda por Tramo */
+.seccion-tramo {
+  background: #FDFBF7;
+  border: 1.5px solid #EFE4D2;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.seccion-tramo h3 {
+  font-size: 0.8rem;
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: var(--paja-guinda);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.form-tramo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-tramo {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-sizing: border-box;
+  background-color: #FFFFFF;
+  transition: border-color 0.2s;
+}
+
+.input-tramo:focus {
+  outline: none;
+  border-color: var(--paja-verde);
+}
+
+.btn-tramo {
+  background: var(--paja-verde);
+  color: #FFFFFF;
+  border: none;
+  padding: 9px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-tramo:hover {
+  background: var(--paja-verde-dark);
+}
+
+.btn-tramo-limpiar {
+  background: #94A3B8;
+  color: #FFFFFF;
+  border: none;
+  padding: 7px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-tramo-limpiar:hover {
+  background: #64748B;
+}
+
+/* Reportes */
+.sidebar h3 {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--paja-guinda);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+#lista-reportes {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reporte-card {
+  background: #FFF9F9;
+  border: 1px solid #FED7D7;
+  border-left: 4px solid var(--paja-guinda);
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.btn-resolver {
+  margin-top: 6px;
+  background: var(--paja-verde);
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+  width: 100%;
+}
+
+.btn-resolver:hover {
+  background: var(--paja-verde-dark);
+}
+
+.btn-exportar {
+  margin-top: auto;
+  background-color: var(--paja-guinda);
+  color: white;
+  border: none;
+  padding: 11px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  letter-spacing: 0.4px;
+}
+
+.btn-exportar:hover {
+  background-color: var(--paja-guinda-dark);
+}
+
+.overlay {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(104, 24, 26, 0.35);
+  backdrop-filter: blur(2px);
+  z-index: 1500;
+}
+
+.overlay.active {
+  display: block;
+}
+
+/* ==========================================
+   MAPA Y BUSCADORES FLOTANTES
+   ========================================== */
+#map-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  flex: 1;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+}
+
+.search-container {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 1000;
+  width: 360px;
+  max-width: calc(100% - 36px);
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+#input-busqueda {
+  width: 100%;
+  padding: 11px 40px 11px 16px;
+  border-radius: 8px;
+  border: 2px solid rgba(104, 24, 26, 0.15);
+  font-size: 0.88rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-md);
+  outline: none;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(8px);
+  color: var(--text-dark);
+  transition: all 0.2s ease;
+}
+
+#input-busqueda:focus {
+  border-color: var(--paja-verde);
+  box-shadow: 0 0 0 3px rgba(118, 167, 56, 0.25), var(--shadow-md);
+}
+
+#btn-limpiar-busqueda {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.resultados-busqueda {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #FFFFFF;
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
+  list-style: none;
+  margin-top: 6px;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 1500;
+  display: none;
+}
+
+.resultados-busqueda li {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  font-size: 0.84rem;
+}
+
+.resultados-busqueda li:hover {
+  background: #F4F8EE;
+}
+
+/* Botones de Acción Flotantes */
+.botones-flotantes {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 1000;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.switch-escaneo {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  padding: 8px 14px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  border: 1.5px solid rgba(104, 24, 26, 0.15);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--paja-guinda);
+  user-select: none;
+}
+
+.switch-escaneo input {
+  display: none;
+}
+
+.slider {
+  width: 32px;
+  height: 18px;
+  background-color: #CBD5E1;
+  border-radius: 18px;
+  position: relative;
+  margin-right: 10px;
+  transition: 0.3s;
+}
+
+.slider:before {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: white;
+  top: 2px;
+  left: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: 0.3s;
+}
+
+input:checked + .slider {
+  background-color: var(--paja-verde);
+}
+
+input:checked + .slider:before {
+  transform: translateX(14px);
+}
+
+.btn-flotante {
+  background-color: var(--paja-guinda);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s ease;
+  font-size: 0.82rem;
+  letter-spacing: 0.3px;
+}
+
+.btn-flotante:hover {
+  background-color: var(--paja-guinda-dark);
+  transform: translateY(-1px);
+}
+
+.btn-gps {
+  background-color: var(--paja-verde);
+}
+
+.btn-gps:hover {
+  background-color: var(--paja-verde-dark);
+}
+
+.btn-flotante.activo {
+  background-color: var(--paja-oro-dark);
+  color: #000000;
+}
+
+.mapa-modo-agregar {
+  cursor: crosshair !important;
+}
+
+/* Modales */
+.modal-historial {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(104, 24, 26, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 3000;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-historial.activo {
+  display: flex;
+}
+
+.modal-contenido {
+  background: #FFFFFF;
+  padding: 24px;
+  border-radius: 10px;
+  max-width: 520px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  border-top: 5px solid var(--paja-guinda);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1.5px solid var(--border-color);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.modal-header h3 {
+  color: var(--paja-guinda) !important;
+  font-weight: 700;
+}
+
+.item-historial {
+  background: #FDFBF7;
+  border-left: 4px solid var(--paja-guinda);
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  font-size: 0.84rem;
+  border: 1px solid var(--border-color);
+  border-left-width: 4px;
+}
+
+.item-historial.resuelto {
+  border-left-color: var(--paja-verde);
+}

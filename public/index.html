@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alumbrado Público - Pajacuarán</title>
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<header>
+  <button id="toggle-sidebar" class="btn-toggle">☰ Menú</button>
+  <div class="header-branding">
+   <img src="/pajacuaran.webp" alt="Gobierno de Pajacuarán" class="logo-ayuntamiento">
+    <div class="header-titulos">
+      <h1>Alumbrado Público</h1>
+      <span>Gobierno Municipal de Pajacuarán 2024 - 2027</span>
+    </div>
+  </div>
+</header>
+
+  <main>
+    <div id="status-card">
+      <span id="server-status">Comprobando conexión...</span>
+    </div>
+
+    <div class="content-container">
+      <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+          <h2>Panel de Control</h2>
+          <button id="close-sidebar" class="btn-close">✕</button>
+        </div>
+        
+        <div class="stats-box">
+          <div class="stat-item operativa">
+            <span id="stat-operativas">0</span>
+            <small>Operativas</small>
+          </div>
+          <div class="stat-item fallando">
+            <span id="stat-fallando">0</span>
+            <small>Fallando</small>
+          </div>
+        </div>
+
+        <div class="filter-box">
+          <label for="filtro-estado"><b>Mostrar en mapa:</b></label>
+          <select id="filtro-estado" class="select-input">
+            <option value="todas">Todas las luminarias</option>
+            <option value="operativa">Solo Operativas</option>
+            <option value="fallando">Solo Fallando</option>
+            <option value="heatmap">🔥 Mapa de Calor (Fallas)</option>
+          </select>
+        </div>
+
+        <!-- Búsqueda por Tramo / Entre Calles Integrada en el Panel -->
+        <div class="seccion-tramo">
+          <h3>📍 Buscar por Tramo (Entre calles)</h3>
+          <div class="form-tramo">
+            <input type="text" id="busqPrincipal" class="input-tramo" placeholder="Calle principal (ej. Javier Mina)">
+            <input type="text" id="busqCruce1" class="input-tramo" placeholder="Entre... (ej. Alameda)">
+            <input type="text" id="busqCruce2" class="input-tramo" placeholder="Y calle... (ej. Ávila Camacho)">
+            <button id="btn-filtrar-tramo" class="btn-tramo" onclick="buscarPorTramo()">🔍 Ver Tramo en Mapa</button>
+            <button type="button" class="btn-tramo-limpiar" onclick="limpiarTramo()">✕ Limpiar Tramo</button>
+          </div>
+        </div>
+
+        <h3>Reportes Recientes</h3>
+        <ul id="lista-reportes">
+          <li>Cargando reportes...</li>
+        </ul>
+
+        <button id="btn-exportar" class="btn-exportar">📥 Descargar Reporte CSV</button>
+      </aside>
+
+      <div id="overlay" class="overlay"></div>
+
+      <!-- Contenedor Mapa y Buscador Principal -->
+      <div id="map-container">
+        <div class="search-container">
+          <div class="search-input-wrapper">
+            <input type="text" id="input-busqueda" placeholder="🔍 Buscar calle o poste..." autocomplete="off">
+            <button id="btn-limpiar-busqueda" style="display:none;">✕</button>
+          </div>
+          <ul id="resultados-busqueda" class="resultados-busqueda"></ul>
+        </div>
+
+        <!-- Botones de Acción Flotantes -->
+        <div class="botones-flotantes">
+          <label class="switch-escaneo">
+            <input type="checkbox" id="toggle-gps-mode">
+            <span class="slider"></span>
+            <span class="label-text" id="status-gps-mode">📡 Modo Recorrido: OFF</span>
+          </label>
+          <button id="btn-gps" class="btn-flotante btn-gps" style="display: none;">📍 MARCAR POSTE AQUÍ</button>
+          <button id="btn-modo-agregar" class="btn-flotante">➕ Clic en Mapa</button>
+        </div>
+
+        <div id="map"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal de Historial -->
+  <div id="modal-historial" class="modal-historial">
+    <div class="modal-contenido">
+      <div class="modal-header">
+        <h3 id="titulo-historial" style="color: #003366;">Historial de Reparaciones</h3>
+        <button id="cerrar-modal" class="btn-close">✕</button>
+      </div>
+      <div id="cuerpo-historial">
+        <p>Cargando historial...</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
