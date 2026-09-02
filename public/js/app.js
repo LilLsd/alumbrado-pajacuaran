@@ -27,16 +27,49 @@ document.addEventListener('DOMContentLoaded', () => {
   let contadorPostes = 1;
 
   // Inicialización del mapa asignándolo a la variable global y a window
-  map = L.map('map', { zoomControl: false }).setView(pajacuaranCoords, 17);
+ // 1. Capa Estándar (OpenStreetMap)
+  const capaCalles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap'
+  });
+
+  // 2. Capa Satelital pura (Esri)
+  const capaSatelital = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Tiles © Esri'
+  });
+
+  // 3. Capa de Nombres y Etiquetas transparentes
+  const capaEtiquetas = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19
+  });
+
+  // 4. Grupo Satelital Híbrido (Foto + Nombres)
+  const satelitalHibrido = L.layerGroup([capaSatelital, capaEtiquetas]);
+
+  // 5. Capa de Relieve / Terreno
+  const capaRelieve = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    maxZoom: 17,
+    attribution: 'Map data: © OpenStreetMap, SRTM | Style: © OpenTopoMap'
+  });
+
+  // Inicializar mapa con el híbrido satelital por defecto
+  map = L.map('map', { 
+    zoomControl: false,
+    layers: [satelitalHibrido]
+  }).setView(pajacuaranCoords, 17);
   window.map = map;
 
   L.control.zoom({ position: 'topright' }).addTo(map);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '© OpenStreetMap'
-  }).addTo(map);
+  // Selector de capas
+  const mapasBase = {
+    "🛰️ Satelital (Con calles)": satelitalHibrido,
+    "🗺️ Mapa Urbano": capaCalles,
+    "⛰️ Relieve y Terreno": capaRelieve
+  };
 
+  L.control.layers(mapasBase, null, { position: 'topright', collapsed: true }).addTo(map);
   const markersGroup = L.layerGroup().addTo(map);
   let heatLayer = null;
   let modoAgregarActivo = false;
