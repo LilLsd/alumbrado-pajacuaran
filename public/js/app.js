@@ -33,27 +33,20 @@ document.addEventListener('DOMContentLoaded', () => {
     attribution: '© OpenStreetMap'
   });
 
-  // 2. Capa Satelital pura (Esri)
-  const capaSatelital = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 19,
-    attribution: 'Tiles © Esri'
+  // 2. Capa Satelital Híbrida de Google (Fotografía de alta definición + Nombres de calles)
+  const satelitalHibrido = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+    maxZoom: 21,
+    maxNativeZoom: 19,
+    attribution: '© Google Maps'
   });
 
-  // 3. Capa de Nombres y Etiquetas transparentes
-  const capaEtiquetas = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 19
-  });
-
-  // 4. Grupo Satelital Híbrido (Foto + Nombres)
-  const satelitalHibrido = L.layerGroup([capaSatelital, capaEtiquetas]);
-
-  // 5. Capa de Relieve / Terreno
+  // 3. Capa de Relieve / Terreno
   const capaRelieve = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
     maxZoom: 17,
     attribution: 'Map data: © OpenStreetMap, SRTM | Style: © OpenTopoMap'
   });
 
-  // Inicializar mapa con el híbrido satelital por defecto
+  // Inicializar mapa con Google Satelital Híbrido por defecto
   map = L.map('map', { 
     zoomControl: false,
     layers: [satelitalHibrido]
@@ -64,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Selector de capas
   const mapasBase = {
-    "🛰️ Satelital (Con calles)": satelitalHibrido,
+    "🛰️ Satelital HD (Google)": satelitalHibrido,
     "🗺️ Mapa Urbano": capaCalles,
     "⛰️ Relieve y Terreno": capaRelieve
   };
@@ -283,12 +276,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const marker = L.marker([lat, lng], { icon: icono });
 
         marker.bindPopup(`
-          <div style="font-family: Arial, sans-serif; min-width: 190px;">
+          <div style="font-family: Arial, sans-serif; min-width: 200px;">
             <h3 style="margin-bottom: 5px; color: #003366;">${lum.codigo}</h3>
             <p style="margin: 3px 0;"><b>Dirección:</b> ${lum.direccion}</p>
             <p style="margin: 3px 0;"><b>Tipo:</b> ${lum.tipo_lampara}</p>
             <p style="margin: 3px 0;"><b>Estado:</b> <strong style="color: ${lum.estado === 'operativa' ? 'green' : 'red'};">${lum.estado.toUpperCase()}</strong></p>
             <hr style="margin: 8px 0; border: 0; border-top: 1px solid #ccc;">
+
+            <button onclick="abrirStreetView('${lum.codigo}', ${lat}, ${lng})" 
+                    style="background: #0284c7; color: white; border: none; padding: 7px 10px; border-radius: 4px; cursor: pointer; width: 100%; margin-bottom: 6px; font-weight: bold; font-size: 0.82rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              🌐 Inspección 360° y Solar
+            </button>
+
             ${lum.estado === 'operativa' ? `
               <button onclick="reportarFalla(${lum.id})" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; width: 100%; margin-bottom: 5px;">
                 Reportar Falla
@@ -706,4 +705,69 @@ window.limpiarTramo = function () {
   if (map) {
     map.closePopup();
   }
+};
+
+// ==========================================
+// INSPECCIÓN VIRTUAL 360° Y CÁLCULO SOLAR
+// ==========================================
+window.abrirStreetView = function(codigo, lat, lng) {
+  const modal = document.getElementById('modal-streetview');
+  const titulo = document.getElementById('modal-sv-titulo');
+  const iframe = document.getElementById('iframe-streetview');
+  const solarContainer = document.getElementById('widget-solar-info');
+  const btnCerrar = document.getElementById('modal-sv-cerrar');
+  const btnExt = document.getElementById('btn-abrir-maps-ext');
+
+  if (!modal) return;
+
+  titulo.textContent = `📍 Inspección Virtual: ${codigo}`;
+
+  // Botón externo de respaldo por si el tramo no tiene cobertura 360° en iframe
+  if (btnExt) {
+    btnExt.href = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`;
+  }
+
+  // 1. Cálculo solar dinámico con SunCalc
+  if (typeof SunCalc !== 'undefined') {
+    const hoy = new Date();
+    const tiempos = SunCalc.getTimes(hoy, lat, lng);
+    const formatoHora = (f) => f ? f.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+
+    const milisegundosNoche = (24 * 60 * 60 * 1000) - (tiempos.sunset - tiempos.sunrise);
+    const horasNoche = (milisegundosNoche / (1000 * 60 * 60)).toFixed(1);
+
+    solarContainer.innerHTML = `
+      <div class="item-solar">
+        <strong>🌅 Amanecer (Apagado)</strong>
+        <span>${formatoHora(tiempos.sunrise)}</span>
+      </div>
+      <div class="item-solar">
+        <strong>🌇 Ocaso (Encendido)</strong>
+        <span>${formatoHora(tiempos.sunset)}</span>
+      </div>
+      <div class="item-solar">
+        <strong>🌙 Tiempo Nocturno Activo</strong>
+        <span>${horasNoche} horas / noche</span>
+      </div>
+      <div class="item-solar">
+        <strong>⚡ Estatus Fotocelda</strong>
+        <span>${hoy > tiempos.sunset || hoy < tiempos.sunrise ? '🌙 Debería estar ON' : '☀️ Debería estar OFF'}</span>
+      </div>
+    `;
+  }
+
+  // 2. Parámetros específicos de panorama 360° para Google Maps Embed
+  iframe.src = `https://maps.google.com/maps?layer=c&cbll=${lat},${lng}&cbp=12,0,,0,0&output=svembed`;
+
+  modal.classList.add('activo');
+
+  const cerrar = () => {
+    modal.classList.remove('activo');
+    iframe.src = '';
+  };
+
+  btnCerrar.onclick = cerrar;
+  modal.onclick = (e) => {
+    if (e.target === modal) cerrar();
+  };
 };

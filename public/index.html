@@ -7,6 +7,8 @@
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="/css/styles.css">
+  <!-- Biblioteca para cálculo de ciclos solares -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
 </head>
 <body>
 <header>
@@ -110,6 +112,24 @@
       </div>
       <div id="cuerpo-historial">
         <p>Cargando historial...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Street View & Datos Solares -->
+  <div id="modal-streetview" class="modal-sv">
+    <div class="modal-sv-contenido">
+      <div class="modal-sv-header">
+        <h3 id="modal-sv-titulo">📍 Inspección Virtual: Poste</h3>
+        <button id="modal-sv-cerrar" class="btn-cerrar-sv">&times;</button>
+      </div>
+      
+      <!-- Widget de Horarios Solares -->
+      <div class="widget-solar-info" id="widget-solar-info"></div>
+
+      <!-- Iframe Street View -->
+      <div class="contenedor-iframe">
+        <iframe id="iframe-streetview" frameborder="0" allowfullscreen loading="lazy"></iframe>
       </div>
     </div>
   </div>
