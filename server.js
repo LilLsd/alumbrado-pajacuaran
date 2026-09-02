@@ -227,6 +227,34 @@ app.get('/api/luminarias-entre-calles', async (req, res) => {
     res.status(500).json({ error: 'Error interno en la consulta: ' + err.message });
   }
 });
+
+// Endpoint para autocompletado y búsqueda individual de calles
+app.get('/api/buscar-calles', async (req, res) => {
+  const { q } = req.query;
+  if (!q || q.trim().length < 2) {
+    return res.json([]);
+  }
+
+  try {
+    const querySQL = `
+      SELECT 
+        id, 
+        nombre, 
+        tipo,
+        ST_Y(ST_Centroid(ST_Envelope(ubicacion))) AS latitud,
+        ST_X(ST_Centroid(ST_Envelope(ubicacion))) AS longitud
+      FROM calles
+      WHERE nombre ILIKE $1
+      ORDER BY nombre ASC
+      LIMIT 8;
+    `;
+    const result = await pool.query(querySQL, [`%${q.trim()}%`]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('❌ Error en /api/buscar-calles:', err.message);
+    res.status(500).json({ error: 'Error al buscar calles en la base de datos' });
+  }
+});
 app.listen(PORT, () => {
   console.log(`=================================`);
   console.log(`Servidor corriendo en el puerto: ${PORT}`);
