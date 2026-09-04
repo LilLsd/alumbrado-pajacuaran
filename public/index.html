@@ -14,7 +14,7 @@
 <header>
   <button id="toggle-sidebar" class="btn-toggle">☰ Menú</button>
   <div class="header-branding">
-   <img src="/pajacuaran.webp" alt="Gobierno de Pajacuarán" class="logo-ayuntamiento">
+    <img src="/pajacuaran.webp" alt="Gobierno de Pajacuarán" class="logo-ayuntamiento">
     <div class="header-titulos">
       <h1>Alumbrado Público</h1>
       <span>Gobierno Municipal de Pajacuarán 2024 - 2027</span>
@@ -77,13 +77,16 @@
 
       <div id="overlay" class="overlay"></div>
 
-      <!-- Contenedor Mapa y Buscador Principal -->
+      <!-- Contenedor Mapa y Buscador Principal con Asistente -->
       <div id="map-container">
         <div class="search-container">
           <div class="search-input-wrapper">
-            <input type="text" id="input-busqueda" placeholder="🔍 Buscar calle o poste..." autocomplete="off">
+            <span class="badge-ia">✨ Asistente</span>
+            <input type="text" id="input-busqueda" placeholder="Pregunta algo: 'las que no jalan', 'cuántas sirven', 'focos en Mina'..." autocomplete="off">
             <button id="btn-limpiar-busqueda" style="display:none;">✕</button>
           </div>
+          <!-- Caja de Respuestas Inteligentes del Asistente -->
+          <div id="ai-respuesta-box" class="ai-respuesta-card" style="display: none;"></div>
           <ul id="resultados-busqueda" class="resultados-busqueda"></ul>
         </div>
 
@@ -121,7 +124,13 @@
     <div class="modal-sv-contenido">
       <div class="modal-sv-header">
         <h3 id="modal-sv-titulo">📍 Inspección Virtual: Poste</h3>
-        <button id="modal-sv-cerrar" class="btn-cerrar-sv">&times;</button>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <a id="btn-abrir-maps-ext" href="#" target="_blank" rel="noopener noreferrer" 
+             style="color: #fff; background: rgba(255,255,255,0.2); text-decoration: none; padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+            ↗ Abrir en Google Maps 360°
+          </a>
+          <button id="modal-sv-cerrar" class="btn-cerrar-sv">&times;</button>
+        </div>
       </div>
       
       <!-- Widget de Horarios Solares -->

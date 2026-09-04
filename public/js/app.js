@@ -13,10 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnExportar = document.getElementById('btn-exportar');
   const btnModoAgregar = document.getElementById('btn-modo-agregar');
 
-  // Elementos de la Búsqueda
+  // Elementos de la Búsqueda y Asistente IA
   const inputBusqueda = document.getElementById('input-busqueda');
   const btnLimpiar = document.getElementById('btn-limpiar-busqueda');
   const resultadosBusqueda = document.getElementById('resultados-busqueda');
+  const aiRespuestaBox = document.getElementById('ai-respuesta-box');
 
   // Elementos del Modo Recorrido (GPS)
   const toggleGPSMode = document.getElementById('toggle-gps-mode');
@@ -26,8 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const pajacuaranCoords = [20.1220, -102.5617];
   let contadorPostes = 1;
 
-  // Inicialización del mapa asignándolo a la variable global y a window
- // 1. Capa Estándar (OpenStreetMap)
+  // 1. Capa Estándar (OpenStreetMap)
   const capaCalles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '© OpenStreetMap'
@@ -72,23 +72,29 @@ document.addEventListener('DOMContentLoaded', () => {
   let userAccuracyCircle = null;
   let watchId = null;
 
-  function crearIconoEstado(color) {
-    const svgIcon = `
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32">
-        <path fill="${color}" stroke="#FFFFFF" stroke-width="1.5" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5-2.5z"/>
-      </svg>`;
+ function crearIconoTactico(estado) {
+    const esOperativa = estado === 'operativa';
+    const clasePulso = esOperativa ? 'beacon-operativa' : 'beacon-fallando';
+    
+    // Microbaliza de 12px con núcleo brillante y anillo de difusión
+    const htmlMarker = `
+      <div class="beacon-wrapper">
+        <div class="beacon-halo ${clasePulso}"></div>
+        <div class="beacon-dot ${clasePulso}"></div>
+      </div>
+    `;
 
     return L.divIcon({
-      className: 'custom-leaflet-icon',
-      html: svgIcon,
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32]
+      className: 'marker-tactico-container',
+      html: htmlMarker,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+      popupAnchor: [0, -14]
     });
   }
 
-  const iconOperativa = crearIconoEstado('#28a745');
-  const iconFallando = crearIconoEstado('#dc3545');
+  const iconOperativa = crearIconoTactico('operativa');
+  const iconFallando = crearIconoTactico('fallando');
 
   const userIcon = L.divIcon({
     className: 'user-gps-marker',
@@ -343,123 +349,353 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
-  // ==========================================
-  // MOTOR DE BÚSQUEDA INTERNO DE CALLES Y LUMINARIAS
-  // ==========================================
-  function normalizarTexto(str) {
+  // ==========================================================
+  // MOTOR DE LENGUAJE NATURAL COLOQUIAL / ASISTENTE MUNICIPAL
+  // ==========================================================
+  function limpiarFrase(str) {
     if (!str) return '';
-    return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    return str
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
-  let tempMarker = null;
-  let searchDebounce = null;
+  function similitudPalabras(a, b) {
+    if (a === b) return 1;
+    if (a.length === 0 || b.length === 0) return 0;
 
-  async function ejecutarBusquedaCalles(query) {
-    if (!query || query.length < 2) {
-      resultadosBusqueda.style.display = 'none';
-      if (btnLimpiar) btnLimpiar.style.display = 'none';
+    const matriz = Array.from({ length: a.length + 1 }, () => []);
+    for (let i = 0; i <= a.length; i++) matriz[i][0] = i;
+    for (let j = 0; j <= b.length; j++) matriz[0][j] = j;
+
+    for (let i = 1; i <= a.length; i++) {
+      for (let j = 1; j <= b.length; j++) {
+        const costo = a[i - 1] === b[j - 1] ? 0 : 1;
+        matriz[i][j] = Math.min(
+          matriz[i - 1][j] + 1,
+          matriz[i][j - 1] + 1,
+          matriz[i - 1][j - 1] + 1
+        );
+      }
+    }
+    const dist = matriz[a.length][b.length];
+    return 1 - dist / Math.max(a.length, b.length);
+  }
+
+  const DICCIONARIO_MODISMOS = {
+    fallando: [
+      'no jala', 'no jalan', 'no sirve', 'no sirven', 'sin luz', 'a oscuras', 
+      'oscuras', 'no prende', 'no prenden', 'parpadea', 'parpadeando', 'trono', 
+      'tronaron', 'fundio', 'fundida', 'fundidas', 'fundidos', 'quemada', 
+      'quemadas', 'quemado', 'descompuesta', 'descompuestas', 'descompuesto', 
+      'fregada', 'fregadas', 'chingada', 'chingadas', 'desmadro', 'desmadrada', 
+      'daniada', 'daniadas', 'danada', 'danadas', 'rota', 'rotas', 'fallando', 
+      'falla', 'fallas', 'averiada', 'averiadas', 'reparar', 'apago', 'apagada', 
+      'apagadas', 'apagados', 'muerta', 'muertas'
+    ],
+    operativa: [
+      'si jala', 'si jalan', 'jala bien', 'jalan bien', 'al 100', 'al tiro', 
+      'buenas', 'buena', 'buenos', 'sirven', 'sirve', 'prende', 'prenden', 
+      'prendida', 'prendidas', 'encendida', 'encendidas', 'funcionando', 
+      'funciona', 'funcionan', 'operativa', 'operativas', 'activas', 'activa', 
+      'sanas', 'arregladas', 'correctas'
+    ],
+    conteo: [
+      'cuantas', 'cuantos', 'cuanto', 'total', 'resumen', 'porcentaje', 
+      'dime cuantas', 'cuantas van', 'numero de', 'suma', 'estadistica'
+    ],
+    tipos: {
+      'led': ['led', 'leds', 'blanca', 'blancas'],
+      'sodio': ['sodio', 'vapor', 'amarilla', 'amarillas', 'naranja'],
+      '100w': ['100w', '100 w', '100 watts', '100vatios'],
+      '70w': ['70w', '70 w', '70 watts'],
+      '50w': ['50w', '50 w', '50 watts']
+    }
+  };
+
+  const PALABRAS_VACIAS = [
+    'dame', 'las', 'los', 'el', 'la', 'un', 'una', 'unos', 'unas', 'que', 'en', 'de', 
+    'del', 'por', 'favor', 'poste', 'postes', 'farola', 'farolas', 'foco', 'focos', 
+    'lampara', 'lamparas', 'luz', 'luces', 'luminaria', 'luminarias', 'donde', 'estan', 
+    'esta', 'muestrame', 'ensename', 'checates', 'checame', 'sacame', 'quiero', 'ver', 
+    'cuales', 'hay', 'todos', 'todas', 'porfa', 'calle', 'avenida', 'andador'
+  ];
+
+  function interpretarPreguntaPopular(fraseOriginal) {
+    const texto = limpiarFrase(fraseOriginal);
+
+    let estadoDetectado = null;
+    for (const claveFalla of DICCIONARIO_MODISMOS.fallando) {
+      if (texto.includes(claveFalla)) {
+        estadoDetectado = 'fallando';
+        break;
+      }
+    }
+    if (!estadoDetectado) {
+      for (const claveOk of DICCIONARIO_MODISMOS.operativa) {
+        if (texto.includes(claveOk)) {
+          estadoDetectado = 'operativa';
+          break;
+        }
+      }
+    }
+
+    let tipoDetectado = null;
+    for (const [tipo, patrones] of Object.entries(DICCIONARIO_MODISMOS.tipos)) {
+      if (patrones.some(p => texto.includes(p))) {
+        tipoDetectado = tipo;
+        break;
+      }
+    }
+
+    const esPreguntaConteo = DICCIONARIO_MODISMOS.conteo.some(c => texto.includes(c));
+
+    const tokens = texto.split(' ').filter(token => {
+      if (token.length <= 2) return false;
+      if (PALABRAS_VACIAS.includes(token)) return false;
+      if (DICCIONARIO_MODISMOS.fallando.some(f => f.includes(token))) return false;
+      if (DICCIONARIO_MODISMOS.operativa.some(o => o.includes(token))) return false;
+      if (DICCIONARIO_MODISMOS.conteo.some(c => c.includes(token))) return false;
+      return true;
+    });
+
+    const posibleUbicacion = tokens.join(' ').trim();
+
+    return {
+      estado: estadoDetectado,
+      tipo: tipoDetectado,
+      esConteo: esPreguntaConteo,
+      ubicacion: posibleUbicacion,
+      textoLimpio: texto
+    };
+  }
+
+  // ==========================================================
+  // MOTOR DE IA MUNICIPAL AVANZADO: LENGUAJE NATURAL + GEOMETRÍA
+  // ==========================================================
+  async function ejecutarAsistenteInteligente(pregunta) {
+    if (!pregunta || pregunta.trim().length < 2) return;
+
+    if (resultadosBusqueda) resultadosBusqueda.style.display = 'none';
+
+    // 1. Detección de tramo entre cruces (ej. "Mina entre Alameda y Ávila Camacho")
+    const matchEntre = pregunta.match(/(.+?)\s+entre\s+(.+?)\s+y\s+(.+)/i);
+    if (matchEntre) {
+      const callePrin = matchEntre[1].replace(/(postes|farolas|focos|luminarias|en|la|calle)\s+/gi, '').trim();
+      const cruce1 = matchEntre[2].trim();
+      const cruce2 = matchEntre[3].trim();
+
+      mostrarCajaAsistente('⏳ Analizando Tramo Espacial...', `Delimitando segmento de <b>${callePrin}</b> entre <b>${cruce1}</b> y <b>${cruce2}</b>...`, []);
+
+      try {
+        const url = `/api/luminarias-entre-calles?callePrincipal=${encodeURIComponent(callePrin)}&cruce1=${encodeURIComponent(cruce1)}&cruce2=${encodeURIComponent(cruce2)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (res.ok && data.tramo_geojson) {
+          if (capaResaltadoTramo && map.hasLayer(capaResaltadoTramo)) {
+            map.removeLayer(capaResaltadoTramo);
+          }
+
+          const geom = JSON.parse(data.tramo_geojson);
+          capaResaltadoTramo = L.geoJSON(geom, {
+            style: { color: '#68181A', weight: 4, fillColor: '#E8B024', fillOpacity: 0.3 }
+          }).addTo(map);
+
+          map.fitBounds(capaResaltadoTramo.getBounds(), { padding: [50, 50], maxZoom: 18 });
+
+          const lumsTramo = data.luminarias || [];
+          mostrarCajaAsistente(
+            '📍 Tramo Delimitado con Éxito',
+            `Se detectaron <b>${lumsTramo.length} luminarias</b> en el tramo de <b>${callePrin}</b> (entre ${cruce1} y ${cruce2}).`,
+            lumsTramo
+          );
+          return;
+        }
+      } catch (err) {
+        console.warn('Fallo en tramo automático:', err);
+      }
+    }
+
+    const intencion = interpretarPreguntaPopular(pregunta);
+
+    // 2. Conteo y estadísticas globales
+    if (intencion.esConteo && !intencion.ubicacion) {
+      const totalPostes = todasLasLuminarias.length;
+      const activas = todasLasLuminarias.filter(l => l.estado === 'operativa').length;
+      const descompuestas = todasLasLuminarias.filter(l => l.estado === 'fallando').length;
+      const porc = totalPostes > 0 ? ((activas / totalPostes) * 100).toFixed(1) : 0;
+
+      const mensaje = `Actualmente hay <b>${totalPostes} luminarias registradas</b> en Pajacuarán:<br>
+        • <b>${activas}</b> operativas (${porc}% del total).<br>
+        • <b>${descompuestas}</b> con reporte de falla activo.`;
+
+      mostrarCajaAsistente('📊 Balance Municipal', mensaje, todasLasLuminarias);
+      centrarEnMapa(todasLasLuminarias);
       return;
     }
 
-    if (btnLimpiar) btnLimpiar.style.display = 'block';
-    resultadosBusqueda.innerHTML = '';
+    // 3. Análisis de ubicación: cruce de texto y proximidad geográfica
+    if (intencion.ubicacion && intencion.ubicacion.length >= 3) {
+      try {
+        const res = await fetch(`/api/buscar-calles?q=${encodeURIComponent(intencion.ubicacion)}`);
+        const callesBD = await res.json();
 
-    try {
-      // 1. Luminarias en memoria
-      const queryNorm = normalizarTexto(query);
-      const lums = (todasLasLuminarias || []).filter(l => 
-        normalizarTexto(l.codigo).includes(queryNorm) || 
-        normalizarTexto(l.direccion).includes(queryNorm)
+        if (Array.isArray(callesBD) && callesBD.length > 0) {
+          const calleEncontrada = callesBD[0];
+          const centroCalle = L.latLng(parseFloat(calleEncontrada.latitud), parseFloat(calleEncontrada.longitud));
+
+          // A) Detección por cercanía espacial al trazo de la calle
+          let postesCercanos = todasLasLuminarias.filter(lum => {
+            const pCoord = L.latLng(parseFloat(lum.latitud), parseFloat(lum.longitud));
+            return centroCalle.distanceTo(pCoord) <= 120;
+          });
+
+          // B) Detección por concordancia de texto en el registro
+          todasLasLuminarias.forEach(lum => {
+            const dir = limpiarFrase(lum.direccion);
+            const cod = limpiarFrase(lum.codigo);
+            if ((dir.includes(intencion.ubicacion) || cod.includes(intencion.ubicacion)) && !postesCercanos.some(p => p.id === lum.id)) {
+              postesCercanos.push(lum);
+            }
+          });
+
+          // C) Filtrar por estado si la consulta lo requería
+          if (intencion.estado) {
+            postesCercanos = postesCercanos.filter(l => l.estado === intencion.estado);
+          }
+
+          if (postesCercanos.length > 0) {
+            let detalle = `Se detectaron automáticamente <b>${postesCercanos.length} poste(s)</b> vinculados a <b>${calleEncontrada.nombre}</b>`;
+            if (intencion.estado) detalle += ` con estado <b>${intencion.estado.toUpperCase()}</b>`;
+
+            mostrarCajaAsistente('📍 Postes Localizados', detalle, postesCercanos);
+            centrarEnMapa(postesCercanos);
+            return;
+          } else {
+            map.flyTo(centroCalle, 18, { duration: 1.2 });
+            mostrarCajaAsistente(
+              '🗺️ Calle Localizada',
+              `Se ubicó <b>${calleEncontrada.nombre}</b> en el mapa. Actualmente no hay postes registrados con esos criterios en su perímetro.`,
+              []
+            );
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Error en análisis espacial de calle:', err);
+      }
+    }
+
+    // 4. Filtrado en memoria por estado o tecnología
+    let candidatos = [...todasLasLuminarias];
+
+    if (intencion.estado) {
+      candidatos = candidatos.filter(l => l.estado === intencion.estado);
+    }
+    if (intencion.tipo) {
+      candidatos = candidatos.filter(l => limpiarFrase(l.tipo_lampara).includes(intencion.tipo));
+    }
+
+    if (candidatos.length > 0 && (intencion.estado || intencion.tipo)) {
+      mostrarCajaAsistente(
+        '💡 Estado de Luminarias',
+        `Se localizaron <b>${candidatos.length} luminaria(s)</b> bajo los parámetros solicitados.`,
+        candidatos
       );
+      centrarEnMapa(candidatos);
+      return;
+    }
 
-      if (lums.length > 0) {
-        const headerLum = document.createElement('li');
-        headerLum.style.cssText = "background:#e9ecef;font-weight:bold;font-size:0.75rem;color:#555;padding:6px 12px;cursor:default;";
-        headerLum.textContent = '💡 LUMINARIAS';
-        resultadosBusqueda.appendChild(headerLum);
+    // 5. Tolerancia léxica amplia sobre códigos o referencias
+    const lumsPorTexto = todasLasLuminarias.filter(l => {
+      const dir = limpiarFrase(l.direccion);
+      const cod = limpiarFrase(l.codigo);
+      return dir.includes(intencion.textoLimpio) || cod.includes(intencion.textoLimpio);
+    });
 
-        lums.slice(0, 3).forEach(lum => {
-          const li = document.createElement('li');
-          li.className = 'search-item';
-          li.innerHTML = `<strong>${lum.codigo}</strong> <span>📍 ${lum.direccion}</span>`;
-          li.onclick = () => {
-            map.flyTo([parseFloat(lum.latitud), parseFloat(lum.longitud)], 19, { duration: 1.2 });
-            if (marcadoresPorId[lum.id]) marcadoresPorId[lum.id].openPopup();
-            resultadosBusqueda.style.display = 'none';
-            inputBusqueda.value = `${lum.codigo} - ${lum.direccion}`;
-          };
-          resultadosBusqueda.appendChild(li);
-        });
-      }
+    if (lumsPorTexto.length > 0) {
+      mostrarCajaAsistente('💡 Luminaria Localizada', `Se encontraron coincidencias para <b>"${pregunta}"</b>:`, lumsPorTexto);
+      centrarEnMapa(lumsPorTexto);
+      return;
+    }
 
-      // 2. Consulta a PostgreSQL
-      const res = await fetch(`/api/buscar-calles?q=${encodeURIComponent(query)}`);
-      const calles = await res.json();
+    // 6. Sin resultados
+    mostrarCajaAsistente(
+      '🤔 Sin coincidencias',
+      `No se encontraron elementos para <i>"${pregunta}"</i>. Prueba con: <b>"postes en Javier Mina"</b>, <b>"cuántas sirven"</b> o <b>"las que no jalan"</b>.`,
+      []
+    );
+  }
 
-      if (Array.isArray(calles) && calles.length > 0) {
-        const headerCalles = document.createElement('li');
-        headerCalles.style.cssText = "background:#e9ecef;font-weight:bold;font-size:0.75rem;color:#555;padding:6px 12px;cursor:default;";
-        headerCalles.textContent = '🗺️ CALLES ENCONTRADAS';
-        resultadosBusqueda.appendChild(headerCalles);
+  function centrarEnMapa(lista) {
+    if (!lista || lista.length === 0) return;
 
-        calles.forEach(calle => {
-          const li = document.createElement('li');
-          li.className = 'search-item';
-          li.innerHTML = `
-            <strong>📍 ${calle.nombre}</strong>
-            <span style="color: #666; font-size: 0.75rem;">Pajacuarán, Michoacán</span>
-          `;
-
-          li.onclick = () => {
-            const lat = parseFloat(calle.latitud);
-            const lon = parseFloat(calle.longitud);
-
-            map.flyTo([lat, lon], 18, { duration: 1.2 });
-
-            if (tempMarker) map.removeLayer(tempMarker);
-            tempMarker = L.marker([lat, lon], {
-              icon: L.divIcon({
-                className: 'temp-search-marker',
-                html: `<div style="background:#ff3333;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 10px rgba(255,0,0,0.8);"></div>`,
-                iconSize: [14, 14],
-                iconAnchor: [7, 7]
-              })
-            }).addTo(map);
-
-            tempMarker.bindPopup(`<b>📍 ${calle.nombre}</b><br>Pajacuarán, Michoacán`).openPopup();
-            resultadosBusqueda.style.display = 'none';
-            inputBusqueda.value = calle.nombre;
-          };
-
-          resultadosBusqueda.appendChild(li);
-        });
-      }
-
-      if (resultadosBusqueda.children.length === 0) {
-        resultadosBusqueda.innerHTML = '<li class="search-empty" style="color:#777;padding:10px;cursor:default;">Sin resultados</li>';
-      }
-
-      resultadosBusqueda.style.display = 'block';
-
-    } catch (err) {
-      console.error('Error al realizar búsqueda:', err);
+    if (lista.length === 1) {
+      const p = lista[0];
+      map.flyTo([parseFloat(p.latitud), parseFloat(p.longitud)], 19, { duration: 1.2 });
+      if (marcadoresPorId[p.id]) marcadoresPorId[p.id].openPopup();
+    } else {
+      const bounds = L.latLngBounds(lista.map(p => [parseFloat(p.latitud), parseFloat(p.longitud)]));
+      map.fitBounds(bounds, { padding: [60, 60], maxZoom: 18 });
     }
   }
 
-  if (inputBusqueda) {
-    inputBusqueda.addEventListener('input', (e) => {
-      const query = e.target.value.trim();
-      if (searchDebounce) clearTimeout(searchDebounce);
-      searchDebounce = setTimeout(() => ejecutarBusquedaCalles(query), 200);
-    });
+  function mostrarCajaAsistente(titulo, textoHtml, postes) {
+    if (!aiRespuestaBox) return;
 
+    let listaHtml = '';
+    if (postes && postes.length > 0) {
+      listaHtml = `
+        <div style="margin-top: 10px; max-height: 150px; overflow-y: auto; border-top: 1px solid #f1f5f9; padding-top: 6px;">
+          ${postes.slice(0, 10).map(p => `
+            <div class="ai-item-poste" onclick="map.flyTo([${p.latitud}, ${p.longitud}], 19); if(marcadoresPorId[${p.id}]) marcadoresPorId[${p.id}].openPopup();">
+              <span><b>${p.codigo}</b> - <small>${p.direccion}</small></span>
+              <span class="badge-estado-mini ${p.estado}">${p.estado.toUpperCase()}</span>
+            </div>
+          `).join('')}
+          ${postes.length > 10 ? `<small style="color:#888; display:block; text-align:center; margin-top:4px;">...y otros ${postes.length - 10} postes más en el mapa</small>` : ''}
+        </div>
+      `;
+    }
+
+    aiRespuestaBox.innerHTML = `
+      <div class="ai-header">
+        <span>✨ ${titulo}</span>
+        <button class="ai-cerrar" onclick="document.getElementById('ai-respuesta-box').style.display='none'">&times;</button>
+      </div>
+      <div class="ai-texto-resultado">${textoHtml}</div>
+      ${listaHtml}
+    `;
+    aiRespuestaBox.style.display = 'block';
+  }
+
+  // Eventos del buscador inteligente
+  if (inputBusqueda) {
     inputBusqueda.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        if (searchDebounce) clearTimeout(searchDebounce);
-        ejecutarBusquedaCalles(inputBusqueda.value.trim());
+        ejecutarAsistenteInteligente(inputBusqueda.value.trim());
       }
     });
+
+    inputBusqueda.addEventListener('input', (e) => {
+      if (btnLimpiar) {
+        btnLimpiar.style.display = e.target.value.length > 0 ? 'block' : 'none';
+      }
+    });
+
+    if (btnLimpiar) {
+      btnLimpiar.addEventListener('click', () => {
+        inputBusqueda.value = '';
+        if (aiRespuestaBox) aiRespuestaBox.style.display = 'none';
+        if (resultadosBusqueda) resultadosBusqueda.style.display = 'none';
+        btnLimpiar.style.display = 'none';
+      });
+    }
   }
 
   // Modo Agregar Manual Clic
@@ -692,7 +928,6 @@ window.limpiarTramo = function () {
     capaResaltadoTramo = null;
   }
 
-  // Limpiar campos de texto
   const elemPrincipal = document.getElementById('busqPrincipal');
   const elemC1 = document.getElementById('busqCruce1');
   const elemC2 = document.getElementById('busqCruce2');
@@ -701,7 +936,6 @@ window.limpiarTramo = function () {
   if (elemC1) elemC1.value = '';
   if (elemC2) elemC2.value = '';
 
-  // Cerrar cualquier popup abierto
   if (map) {
     map.closePopup();
   }
@@ -722,12 +956,10 @@ window.abrirStreetView = function(codigo, lat, lng) {
 
   titulo.textContent = `📍 Inspección Virtual: ${codigo}`;
 
-  // Botón externo de respaldo por si el tramo no tiene cobertura 360° en iframe
   if (btnExt) {
     btnExt.href = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`;
   }
 
-  // 1. Cálculo solar dinámico con SunCalc
   if (typeof SunCalc !== 'undefined') {
     const hoy = new Date();
     const tiempos = SunCalc.getTimes(hoy, lat, lng);
@@ -756,7 +988,6 @@ window.abrirStreetView = function(codigo, lat, lng) {
     `;
   }
 
-  // 2. Parámetros específicos de panorama 360° para Google Maps Embed
   iframe.src = `https://maps.google.com/maps?layer=c&cbll=${lat},${lng}&cbp=12,0,,0,0&output=svembed`;
 
   modal.classList.add('activo');
